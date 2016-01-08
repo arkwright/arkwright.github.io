@@ -41,6 +41,7 @@ main > section > header > h1
   letter-spacing: -.04em;
   font-weight: bold;
   text-align: center;
+  margin-bottom: 6rem;
 }
 
 main > section > ul
@@ -54,6 +55,7 @@ main > section > ul > li
 {
   margin-top: 1em;
   text-align: center;
+  font-size: 1.4rem;
 }
 
 main > section > ul > li:first
