@@ -1,119 +1,171 @@
-body
-{
+body {
   background-color: #FFF;
-  color: #777;
-  font-family: Palatino, Georgia, serif;
+  color: #444;
+  font-family: "Helvetica Neue", sans-serif;
   font-size: 62.5%;
   letter-spacing: -.04em;
+  margin: 0;
   padding: 2rem;
 }
 
-a
-{
-  text-decoration: none;
-}
-
-a:hover
-{
+a {
+  color: #444;
   text-decoration: underline;
 }
 
+a:hover {
+  text-decoration: underline;
+  color: #888;
+}
+
 ol,
-ul
-{
+ul {
   margin: 0;
   padding: 0;
 
   list-style: none;
 }
 
-main
-{
+main {
   max-width: 40rem;
 
   margin: 0 auto;
 }
 
-main > section > header > h1
-{
-  font-style: italic;
+main > section > header > h1 {
   font-size: 3rem;
-  letter-spacing: -.04em;
   font-weight: bold;
-  text-align: center;
+  letter-spacing: -.04em;
   margin-bottom: 6rem;
+  text-align: center;
 }
 
-main > section > ul
-{
+main > section > ul {
   padding: 0 2em;
 
   font-size: 2em;
 }
 
-main > section > ul > li
-{
+main > section > ul > li {
   margin-top: 1em;
   text-align: center;
   font-size: 1.4rem;
 }
 
-main > section > ul > li:first
-{
+main > section > ul > li:first {
   margin-top: 0;
 }
 
-main > section > ul > li > a
-{
-  color: #777;
+main > section > ul > li > a {
 }
 
-main > header.article
-{
-  position: relative;
-  text-align: center;
-  top: -60px;
-  transition: top 1s;
+main > header.article {
+  text-align: left;
 }
 
-main > header.article:hover
-{
-  top: -45px;
-}
-
-main > header.article > a.title
-{
-  font-style: italic;
-  font-size: 2.2rem;
-  letter-spacing: -.04em;
-  font-weight: bold;
-  text-align: center;
-  color: #777;
-  padding-bottom: 20px;
-}
-
-main > article > h1
-{
-  font-style: italic;
+main > header.article > a.title {
+  color: #DDD;
+  display: block;
   font-size: 2rem;
+  font-style: normal;
   font-weight: bold;
   letter-spacing: -.04em;
-  margin-bottom: 1.4rem;
-  line-height: 2.9rem;
+  line-height: 2.6rem;
+  margin-bottom: 2.4rem;
+  text-decoration: none;
+  transition: color 0.5s linear;
 }
 
-main > article > h2
-{
-  font-style: italic;
-  font-size: 1.4rem;
+main > header.article > a.title:hover {
+  text-decoration: none;
+  color: #BBB;
+}
+
+@media screen and (min-width: 850px) {
+  main > header.article > a.title {
+    font-size: 2rem;
+    position: absolute;
+    right: 2.4rem;
+    top: 0.2rem;
+    transform-origin: right bottom;
+    transform: rotate(-90deg);
+  }
+}
+
+main > article > h1 {
+  font-size: 2rem;
+  font-style: normal;
   font-weight: bold;
-  margin: 2.8rem 0 1.4rem;
-  line-height: 2rem;
+  letter-spacing: -.04em;
+  line-height: 2.8rem;
+  margin-bottom: 1.4rem;
+  margin-top: 0;
 }
 
-main > article > p
-{
+main > article > h2 {
   font-size: 1.4rem;
+  font-style: normal;
+  font-weight: bold;
   line-height: 2rem;
-  margin: 0 0 1.4rem;
+  margin: 2.8rem 0 1.4rem;
+}
+
+main > article > h3 {
+  font-size: 1.1rem;
+  font-style: normal;
+  font-weight: bold;
+  line-height: 2rem;
+  margin: 2.6rem 0 1.4rem;
+}
+
+main > article > p {
+  font-size: 1rem;
+  line-height: 1.6rem;
+  margin: 0 0 1.6rem;
+}
+
+main > article > p > code,
+main > article li > code {
+  font-size: 1rem;
+  font-family: Courier, monospace;
+  background-color: #EEE;
+  border-radius: 4px;
+  border: 1px solid #DDD;
+  padding: .1rem .4rem;
+}
+
+main > article ul,
+main > article ol {
+  font-size: 1rem;
+  line-height: 1.6rem;
+  list-style-type: circle;
+  margin: 0 0 1.6rem 1.4rem;
+}
+
+main > article ol {
+  list-style-type: decimal;
+}
+
+main > article ul li,
+main > article ol li {
+  margin-bottom: 0.4rem;
+}
+
+main > article > blockquote {
+  font-size: 1rem;
+  line-height: 1.6rem;
+  color: #888;
+  margin: 2rem 1rem 1.6rem;
+  border-left: 3px solid #BBB;
+  padding-left: 1rem;
+}
+
+main > article > div > pre {
+  font-size: 1.2rem;
+  font-family: Courier, monospace;
+  background-color: #F0F0F0;
+  border-radius: 4px;
+  border: 1px solid #DDD;
+  padding: .5rem .8rem;
+  margin: 0 0 1.6rem;
 }
