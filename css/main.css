@@ -3,7 +3,6 @@ body {
   color: #444;
   font-family: "Helvetica Neue", sans-serif;
   font-size: 62.5%;
-  letter-spacing: -.04em;
   margin: 0;
   padding: 2rem;
 }
@@ -33,30 +32,45 @@ main {
 }
 
 main > section > header > h1 {
-  font-size: 3rem;
+  color: #DDD;
+  display: block;
+  font-size: 2.4rem;
+  font-style: normal;
   font-weight: bold;
   letter-spacing: -.04em;
-  margin-bottom: 6rem;
+  line-height: 2.6rem;
   text-align: center;
+  margin-bottom: 2.4rem;
+  text-decoration: none;
+  transition: color 0.5s linear;
 }
 
 main > section > ul {
-  padding: 0 2em;
+  padding: 0 2rem;
 
-  font-size: 2em;
+  font-size: 2rem;
 }
 
 main > section > ul > li {
-  margin-top: 1em;
-  text-align: center;
   font-size: 1.4rem;
+  letter-spacing: -.03rem;
+  margin: 0 0 2rem;
+  text-align: center;
 }
 
-main > section > ul > li:first {
-  margin-top: 0;
+@media screen and (min-width: 650px) {
+  main > section > ul > li {
+    margin-bottom: 1rem;
+  }
 }
 
 main > section > ul > li > a {
+  font-weight: bold;
+  text-decoration: none;
+}
+
+main > section > ul > li > a:hover {
+  text-decoration: none;
 }
 
 main > header.article {
@@ -66,10 +80,10 @@ main > header.article {
 main > header.article > a.title {
   color: #DDD;
   display: block;
-  font-size: 2rem;
+  font-size: 1.8rem;
   font-style: normal;
   font-weight: bold;
-  letter-spacing: -.04em;
+  letter-spacing: -.04rem;
   line-height: 2.6rem;
   margin-bottom: 2.4rem;
   text-decoration: none;
@@ -96,7 +110,8 @@ main > article > h1 {
   font-size: 2rem;
   font-style: normal;
   font-weight: bold;
-  letter-spacing: -.04em;
+  letter-spacing: -.03rem;
+  letter-spacing: -.08rem;
   line-height: 2.8rem;
   margin-bottom: 1.4rem;
   margin-top: 0;
@@ -106,6 +121,7 @@ main > article > h2 {
   font-size: 1.4rem;
   font-style: normal;
   font-weight: bold;
+  letter-spacing: -.03rem;
   line-height: 2rem;
   margin: 2.8rem 0 1.4rem;
 }
@@ -114,6 +130,7 @@ main > article > h3 {
   font-size: 1.1rem;
   font-style: normal;
   font-weight: bold;
+  letter-spacing: -.03rem;
   line-height: 2rem;
   margin: 2.6rem 0 1.4rem;
 }
