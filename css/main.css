@@ -6,10 +6,10 @@ body {
 body {
   background-color: #FFF;
   color: #444;
-  font-family: "Helvetica Neue", sans-serif;
+  font-family: "Open Sans", "Helvetica Neue", Helvetica, sans-serif;
   font-size: 62.5%;
   margin: 0;
-  padding: 2rem;
+  padding: 1.4rem;
   display: flex;
   flex-direction: column;
   box-sizing: border-box;
@@ -34,10 +34,6 @@ ul {
 }
 
 main {
-  max-width: 40rem;
-
-  margin: 0 auto;
-
   flex: 1 0 auto;
 }
 
@@ -118,6 +114,8 @@ main > header.article > a.title:hover {
 
 main > article {
   padding-bottom: 4rem;
+  max-width: 40rem;
+  margin: 0 auto;
 }
 
 main > article > h1 {
@@ -154,6 +152,16 @@ main > article > p {
   line-height: 1.6rem;
   margin: 0 0 1.6rem;
 }
+
+main > article > p > img {
+  display: block;
+  max-width: 100%;
+  margin: 0 auto;
+}
+
+main > article > p > img.small        { width: 40%; }
+main > article > p > img.medium       { width: 45%; }
+main > article > p > img.medium-large { width: 60%; }
 
 main > article > p > code,
 main > article li > code {
@@ -199,6 +207,7 @@ main > article > div > pre {
   border: 1px solid #DDD;
   padding: .5rem .8rem;
   margin: 0 0 1.6rem;
+  overflow-x: auto;
 }
 
 footer {
