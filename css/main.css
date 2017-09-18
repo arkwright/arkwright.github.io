@@ -159,10 +159,6 @@ main > article > p > img {
   margin: 0 auto;
 }
 
-main > article > p > img.small        { width: 40%; }
-main > article > p > img.medium       { width: 45%; }
-main > article > p > img.medium-large { width: 60%; }
-
 main > article > p > code,
 main > article li > code {
   font-size: 1rem;
@@ -214,6 +210,7 @@ footer {
   font-size: 1.2rem;
   font-weight: bold;
   text-align: right;
+  padding: 0 1rem 2.4rem;
 }
 
 footer > a {
