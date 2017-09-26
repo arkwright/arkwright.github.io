@@ -3,7 +3,7 @@ layout: post
 title:  Event Sourcing
 ---
 
-<img src="/images/event-sourcing/bugs.svg" width="1000" />
+<img src="/images/event-sourcing/bugs.svg" width="1000" alt="A marching line of various types of insects, including ants, flies, ladybugs, etc., intended as an analogy to the stream of diverse events in an event sourced system. The irony of using a stream of bugs is not lost on me." />
 
 # Event Sourcing
 
@@ -13,13 +13,48 @@ I recently became intrigued by the concept of _[event sourcing](https://martinfo
 
 To better understand the trade-offs between a traditional, monolithic back-end, and a microservice-oriented, event sourced approach, I began sketching a toy architecture for the initial user flow of seemingly every web application: signing up for a user account, and receiving an activation email. Easy enough, right?
 
-<img src="/images/event-sourcing/alien.svg" width="70" />
+<img src="/images/event-sourcing/alien.svg" width="70" alt="Alien from outer space, saying 'Sup.', as aliens do." />
 
 Little did I realize just how alien the event sourcing pattern would feel. I quickly developed more questions than answers. I spent the next several days reading everything I could about the subject, desperately begging Google to show me the way. I learned an incredible amount during that time, and in the spirit of the great [Julia Evans](https://jvns.ca/) I felt compelled to distill and summarize what I have learned for you, my fellow traveler.
 
 This is by no means a guide indicating the "correct" way to do anything. My hope is that, if you're new to event sourcing, this summary might help you to start reasoning about how such a system could work.
 
-<img src="/images/event-sourcing/devil.svg" width="40" />
+## Things We Will Talk About
+
+* [May the source be with you.](#may-the-source-be-with-you)
+* [What the hell is event sourcing?](#what-the-hell-is-event-sourcing)
+* [What can event sourcing do for me?](#what-can-event-sourcing-do-for-me)
+  * [Historical Queries](#historical-queries)
+  * [Immutable Data](#immutable-data)
+  * [Time-Traveling Debugging](#time-traveling-debugging)
+  * [Easily Connect Data Consumers](#easily-connect-data-consumers)
+  * [Reasonable Scaling Defaults](#reasonable-scaling-defaults)
+  * [Fault Tolerance and Resiliency](#fault-tolerance-and-resiliency)
+  * [Mitigation of Data Inconsistencies](#mitigation-of-data-inconsistencies)
+  * [Simplicity](#simplicity)
+  * [Forgiving Of Mistakes](#forgiving-of-mistakes)
+  * [Ends Normalization Debate](#ends-normalization-debate)
+  * [Audit Trail](#audit-trail)
+  * [Better Business Agility](#better-business-agility)
+* [What might event sourcing look like in practice?](#what-might-event-sourcing-look-like-in-practice)
+  * [Signing Up For An Account](#signing-up-for-an-account)
+  * [Immediate Feedback For The User](#immediate-feedback-for-the-user)
+  * [Failure Modes](#failure-modes)
+  * [Validation](#validation)
+  * [Maybe You Don't Need Immediate Consistency](#maybe-you-dont-need-immediate-consistency)
+  * [Locks](#locks)
+  * [Temporal Anomalies](#temporal-anomalies)
+  * [Fencing Tokens](#fencing-tokens)
+  * [Filtering Duplicates](#filtering-duplicates)
+  * [Uniq Service](#uniq-service)
+  * [Relational Database Envy](#relational-database-envy)
+  * [The Read Model](#the-read-model)
+  * [Sending Mail](#sending-mail)
+  * [Dependency Woes](#dependency-woes)
+  * [That's All, Folks](#thats-all-folks)
+* [Where do we go from here?](#where-do-we-go-from-here)
+
+<img src="/images/event-sourcing/devil.svg" width="40" alt="Lousy stick figure drawing of the devil holding a pitchfork. 'What the hell is event sourcing?' Get it? Get it?!" />
 
 ## What the hell is event sourcing?
 
@@ -34,7 +69,7 @@ But — and this is true of most definitions of most things — this will just 
 * Other parts of the application can read from the event log. This allows for a pub/sub style of communication, where multiple listeners can react to events they are interested in.
 * Listeners can reconstruct their own application state by reading from the event log and applying the events to their own, private data store, such as a database. They might apply some of the events, or all of them, depending on their use case. Events are always applied in the total order that they appear in the log.
 
-<img src="/images/event-sourcing/overview.svg" width="430" />
+<img src="/images/event-sourcing/overview.svg" width="430" alt="Diagram of application synchronously writing (appending) an event to the event log. A service named Some Service asynchronously reads a prior event from the log, processes it, and writes to its own, private database." />
 
 ## What can event sourcing do for me?
 
@@ -44,7 +79,7 @@ I can recommend two really good sales pitches for event sourced architectures (s
 2. Greg Young gave [a great talk](https://www.youtube.com/watch?v=8JKjvY4etTY) which really helped me to understand how event sourcing can be useful _even at small traffic scales._
 3. And as always, Martin Fowler will try to talk some sense into us as a part of [his fantastic overview](https://www.youtube.com/watch?v=aweV9FLTZkU).
 
-<img src="/images/event-sourcing/fowler-kleppmann-young.svg" width="280" />
+<img src="/images/event-sourcing/fowler-kleppmann-young.svg" width="280" alt="Poorly drawn stick figure versions of Martin Fowler (beard), Martin Kleppmann (long hair), and Greg Young (beard and short hair). It is surprisingly hard to capture someone's essence using only hair." />
 
 But it's not fair for me to dump two hours of educational materials into your lap, so I'll do my best to summarize the observations of the great masters.
 
@@ -54,7 +89,7 @@ A typical database can answer questions about your data as it exists right now, 
 
 For example, you can query your database to determine the number of user accounts that exist. But what if your business stakeholder wanted to know how many users create an account, delete it, and then change their mind and create it again? Your database typically will not capture this data, since it only stores the _current_ state — it only stores the user account, and not the _steps_ that were taken to create that account. Writing events to a [log](https://www.youtube.com/watch?v=-fQGPZTECYs) naturally makes these kinds of queries possible, because the historical data is never deleted. The ability to be able to answer _any_ question that the business asks about the history of the application is incredibly valuable.
 
-<img src="/images/event-sourcing/history-state.svg" width="300" />
+<img src="/images/event-sourcing/history-state.svg" width="300" alt="Diagram of event log representing time series data. The values comprising the history are: 0, +3, -5, +9, +1. When added, they compute the value 8, which is the application's state, depicted as being stored in a database." />
 
 Historical queries can ask, "How did we arrive at this state?", instead of, "What does the current state look like?"
 
@@ -62,7 +97,7 @@ Historical queries can ask, "How did we arrive at this state?", instead of, "Wha
 
 Modeling your data as an immutable, append-only log of events greatly simplifies reasoning about how the application works. It is harder to get yourself into a confusing situation by accidentally mutating state. This is easier to understand when we consider the utility of time-traveling debugging.
 
-<img src="/images/event-sourcing/append.svg" width="280" />
+<img src="/images/event-sourcing/append.svg" width="280" alt="Diagram of an event being appended to the end of an event log, with sweet explosion effect to emphasize that we always append, never mutate." />
 
 ### Time-Traveling Debugging
 
@@ -70,23 +105,23 @@ Dan Abramov (creator of Redux) has [sung the praises](https://youtu.be/xsSnOQynT
 
 Given that the event log is immutable, all changes to the application's state must be driven by _appending_ to the event log instead of changing it. This means that when our application behaves in a confusing way, we can simply start from the "beginning of time" and replay events one by one until we isolate the event that is triggering the confusing behavior. This is a powerful and incredibly simple tool for debugging our application.
 
-<img src="/images/event-sourcing/time-travel.svg" width="300" />
+<img src="/images/event-sourcing/time-travel.svg" width="300" alt="Diagram of event log containing 8 events. A second log pulls 5 events from the first log, in original order, to reconstruct a previous application state." />
 
 _But that's not all!_ Just as our version control system can "check out" code at a particular point in the project's history, our event log can "check out" a particular point in time so that we can inspect how the state looked at that moment.
 
 As Martin Fowler [pointed out](https://martinfowler.com/eaaDev/EventSourcing.html), instead of exclusively writing end-to-end tests we can explore a complementary approach: store and replay a sequence of events into the log, and then inspect the application's state to ensure that it matches what we expect.
 
-<img src="/images/event-sourcing/testing.svg" width="600" />
+<img src="/images/event-sourcing/testing.svg" width="600" alt="Diagram of an event log with Mr. Potato Head pieces representing the content of events. The production environment correctly assembles the events into a very poorly drawn Mr. Potato Head, and the QA environment assembles them into a horrifying mutation. Stick figure Martin Fowler comments that 'It's broke.'" />
 
 These are just some examples. Retaining the time-series data in our event log opens up numerous opportunities for building [technical wealth](http://firstround.com/review/forget-technical-debt-heres-how-to-build-technical-wealth/).
 
-<img src="/images/event-sourcing/crown.svg" width="120" />
+<img src="/images/event-sourcing/crown.svg" width="120" alt="Drawing of a crown with jewels. I put some extra lines around it to indicate fanciness. This is a metaphor for technical wealth. The exact type of crown is left to the reader's imagination." />
 
 ### Easily Connect Data Consumers
 
 An event sourced architecture features an event log as the central hub to which data producers write, and from which data consumers read. This pub/sub architecture minimizes or eliminates the need to write custom adaptors to get data out of one system and into another. All data is published in a standardized message format (JSON, or whatever you enjoy). Writing a new consumer becomes easier and more predictable, since systems share data in a consistent way. Multiple listeners can subscribe to an event log without a problem.
 
-<img src="/images/event-sourcing/central-log.svg" width="450" />
+<img src="/images/event-sourcing/central-log.svg" width="450" alt="Diagram of an event log at the center of many services, which connect to it to consume each other's data. A sharpy dressed smiley face (with bow tie) connects to one of the services, as users do." />
 
 Systems often mutate into Frankenstein architectures as new features and use cases are ~~bolted on~~ accommodated. Martin Kleppmann does a great job of [describing this phenomenon](https://www.confluent.io/blog/using-logs-to-build-a-solid-data-infrastructure-or-why-dual-writes-are-a-bad-idea/). Modeling data consumption as a log of events can mitigate this unsatisfactory result.
 
@@ -96,19 +131,19 @@ An event sourced architecture provides reasonable defaults for common scalabilit
 
 If writing to the event log is the bottleneck, we can split a single log into _partitions_ spread over multiple servers, each responsible for handling writes to its fair share of the partitions. This is how Apache Kafka works.
 
-<img src="/images/event-sourcing/partitions.svg" width="400" />
+<img src="/images/event-sourcing/partitions.svg" width="400" alt="Diagram of two services, Service and Moar Service, each synchronously writing to two different event log partitions. Service produces events 1 through 5, and Moar Service produces events A through E. Both partitions are asynchronously read by two different consumers." />
 
 If reading from the event log is the bottleneck, we can introduce log replication and have consumers read from the replicas.
 
-<img src="/images/event-sourcing/replicas.svg" width="480" />
+<img src="/images/event-sourcing/replicas.svg" width="480" alt="Diagram of a service synchronously writing events 1 through 5 to an event log. The log replicates those events to two replicas, from which two consumers are able to asynchronously read." />
 
 If consumers cannot keep up with the volume of events, we can add more consumers and parallelize the work of processing the events.
 
-<img src="/images/event-sourcing/parallel-consumers.svg" width="520" />
+<img src="/images/event-sourcing/parallel-consumers.svg" width="520" alt="Diagram of a service synchronously writing events 1 through 9 to an event log. The log is asynchronously split into three partitions, with events being spread over the partitions. The partitions receive events {1, 4, 7}, {2, 5, 8}, and {3, 6, 9}, respectively. Three consumers are each dedicated to consuming events from one of the partitions." />
 
 If we run out of disk space to store the log, we can explore options for long-term storage. We could write a service to read older log messages and push them into a some kind of data warehouse. Consumers which only need to keep up with processing new-ish messages read directly from the primary log. Consumers which wish to rebuild their local state by processing all log messages from the beginning of time may do so by reading from the data warehouse until they reach the most recent warehoused message, and then switch to reading from the primary log.
 
-<img src="/images/event-sourcing/storage.svg" width="450" />
+<img src="/images/event-sourcing/storage.svg" width="450" alt="Diagram of a service synchronously writing event 12 to the event log. A Long Term Storage service asynchronously pulls event 7 from the log and synchronously appends it to its own log, which now contains events 1 through 7. A cool consumer wearing (probably expensive) sunglasses asynchronously reads events 1 through 7 from the Long Term Storage log, and events 8 through latest from the main log." />
 
 ### Fault Tolerance and Resiliency
 
@@ -126,11 +161,11 @@ MailService.sendAccountActivationEmail(user)
 
 The above logic will work 99% of the time. But every now and then the `MailService` will go offline. The new account will be created but the user will not receive their activation email. The user cannot activate their account!
 
-<img src="/images/event-sourcing/dual-writes.svg" width="300" />
+<img src="/images/event-sourcing/dual-writes.svg" width="300" alt="Diagram of a Controller performing a dual write, first to a database, and then to a Mail Service. A cartoon-style bomb, with the silly sparkling fuse hanging out, demonstrates how the second write could fail at any time." />
 
 This is a tricky situation to recover from, and an example of the problem of [dual writes](https://www.confluent.io/blog/using-logs-to-build-a-solid-data-infrastructure-or-why-dual-writes-are-a-bad-idea/). It would be much better if we could build an application which simply _pauses_ when a subsystem goes down, and resumes from where it left off when that subsystem comes back online. This would provide tremendous peace of mind, save countless users from headache, and prevent us from wasting many days recovering from, debugging, and prematurely optimizing the availability problems of our `MailService`.
 
-<img src="/images/event-sourcing/hard-drive.svg" width="220" />
+<img src="/images/event-sourcing/hard-drive.svg" width="220" alt="Completely ridiculous drawing of a muscled hard drive, with the glorious caption, 'World's Most Reliable!!!!!!1' The hard drive is Super Duper brand, if that makes any difference." />
 
 Remember: we can often substitute rapid recovery for high availability. Instead of investing significant sums to achieve high availability, we can [Pareto-optimize](https://en.wikipedia.org/wiki/Pareto_principle) by investing a smaller amount into rapid recovery. For example, instead of buying the world's most reliable hard drive, we could simply make frequent backups. Our system can go down frequently, but the user will never notice as long as we can recover in a reasonable amount of time. As Gary Bernhardt [astutely points out](https://www.destroyallsoftware.com/compendium/network-protocols/97d3ba4c24d21147), TCP is so good at this that we take it for granted!
 
@@ -148,7 +183,7 @@ EventLog.append(event)
 
 Notice how we are no longer performing dual writes. Instead, we perform a single append to the event log. This is equivalent to saving the user account in the first example. If we model our writes as single log appends, they become inherently atomic.
 
-<img src="/images/event-sourcing/single-write.svg" width="450" />
+<img src="/images/event-sourcing/single-write.svg" width="450" alt="Diagram of a User Service performing a single, synchronous write to an event log. A Mail Service then asynchronously reads from the event log. The world-famous 'shrug emoji' person adds much needed comic relief." />
 
 The email service would be monitoring the log for new account creation events, and would send emails in response to those events. If the email service were to go offline, it could simply pick up from where it left off. In fact, the email service could go offline for _days_, and catch up on unsent emails when it comes back online. It could also contain a memory leak which causes the system to crash every hour, but as long as the email service restarts automatically, your users will not likely perceive a service interruption.
 
@@ -158,13 +193,13 @@ Kleppmann [points out](https://www.confluent.io/blog/using-logs-to-build-a-solid
 
 For example, let's say you update a user account record in the database, and then update a cache containing the now stale data. Let's further say that the cache update operation fails. Your cache is now out of sync with your database. Have fun debugging the consequences!
 
-<img src="/images/event-sourcing/cache-out-of-sync.svg" width="250" />
+<img src="/images/event-sourcing/cache-out-of-sync.svg" width="250" alt="Diagram of Your App attempting dual writes again, because you never learn. First to write name=jane to the Database, and then to write name=jane to the Cache. The latter write fails, due to nuclear explosion, which is surprisingly difficult to draw, because it can easily end up looking like mashed potatoes. Whatever. The Cache contains name=barb, because name=jane was not written." />
 
 A read-through cache can exhibit a similar problem. Updates to a user account in the database will not be immediately reflected in its corresponding cache entry until that entry expires. Stale cache data can be very confusing to both users and developers.
 
 But what if we perform all writes to an event log? The cache can read and apply the events in order. The cache is always in sync with its source of truth, with the standard disclaimers about eventual consistency applying. But under normal circumstances, your cache could be quite consistent with its data source. Should anything go wrong, the cache can be rebuilt by simply starting from scratch and re-consuming the event log.
 
-<img src="/images/event-sourcing/cache-sync.svg" width="320" />
+<img src="/images/event-sourcing/cache-sync.svg" width="320" alt="Diagram of Your App synchronously writing name=jane to an event log, which already contains one event, name=barb. Database and Cache asynchronously read events from the log, and are eventually rendered consistent, with both containing name=jane." />
 
 ### Simplicity
 
@@ -184,23 +219,23 @@ But what if we can fix the bug and simply rebuild the state by re-consuming even
 
 Of course, there will always be exceptions. [All abstractions leak.](https://www.joelonsoftware.com/2002/11/11/the-law-of-leaky-abstractions/) But in general we prefer boats with fewer leaks.
 
-<img src="/images/event-sourcing/leaks.svg" width="240" />
+<img src="/images/event-sourcing/leaks.svg" width="240" alt="Cartoon of a stick figure in a sinking boat, saying 'We'll fix it in the next sprint.' Haven't we all been there?" />
 
 ### Ends Normalization Debate
 
 Kleppmann makes an [excellent observation](https://www.confluent.io/blog/turning-the-database-inside-out-with-apache-samza/) regarding the best practice of database normalization. There is a tension between read- and write-optimized schemas. At a certain point, in order to boost read performance, we are tempted to denormalize our database. We might also attempt to cache query results from the normalized database, usually employing some kind of error-prone, dual write strategy.
 
-<img src="/images/event-sourcing/normalization.svg" width="250" />
+<img src="/images/event-sourcing/normalization.svg" width="250" alt="Stick figure cartoon re-enactment of that Pulp Fiction scene where Vincent and Jules point their guns at a guy, his hands in the air, and Jules yelling, 'Say normalization again!'" />
 
 A log-oriented system breaks the tension by _deriving_ one or more read models from the log. We accept from the outset that one model cannot be great at everything. The log is write-optimized, and the derived read models can be denormalized to suit their specific usage pattern.
 
 ### Audit Trail
 
-Greg Young [recalls](https://www.youtube.com/watch?v=8JKjvY4etTY) that he was initially attracted to event sourcing because he needed to implement auditing. Storing a log of every event that has occurred in the history of the application provides a natural audit trail.
+Greg Young [recalls](https://youtu.be/8JKjvY4etTY?t=1m1s) that he was initially attracted to event sourcing because he needed to implement auditing. Storing a log of every event that has occurred in the history of the application provides a natural audit trail.
 
 If we aren't working on, say, a financial application, we tend to think that auditing will not be an important use case for our software. Then an incident occurs in production, and what do we do? We check the logs!
 
-<img src="/images/event-sourcing/batcomputer.svg" width="280" />
+<img src="/images/event-sourcing/batcomputer.svg" width="280" alt="Stick figure batman asks the Batcomputer, 'Where were the Joker's last three known locations?' The caption underneath reads, 'Tragically, the Batcomputer was stateful.'" />
 
 ### Better Business Agility
 
@@ -212,7 +247,7 @@ The ability to connect new consumers to the log stream opens up the possibility 
 
 Have you ever noticed that _changing_ an existing system tends to trigger a bikeshedding process? _Adding_ a new system, in my experience, does not produce the same strong political reaction. My hunch is that this is because changing an existing system might break something which a colleague considers incredibly valuable, even sacrosanct. So by architecting our application to allow for the easy introduction of new subsystems, it seems reasonable to expect that we could actually reduce the amount of political debate associated with the running of experiments.
 
-<img src="/images/event-sourcing/change.svg" width="1000" />
+<img src="/images/event-sourcing/change.svg" width="1000" alt="Two stick figure people, one with a moneybag emoji for a head. Person: 'I'd like to change two pixels on the homepage.' Moneybag: 'Don't, we might lose revenue!' Person: 'I'd like to launch a new product line.' Moneybag: 'That's fine.'" />
 
 ## What might event sourcing look like in practice?
 
@@ -222,7 +257,7 @@ Recall the initial user flow I described earlier: the user signs up for an accou
 
 Our user lands on the account sign up page and fills out the form, providing their `username`, `email`, and `password`.
 
-<img src="/images/event-sourcing/api-gateway.svg" width="200" />
+<img src="/images/event-sourcing/api-gateway.svg" width="200" alt="Diagram of smiley face connecting to an API Gateway service over HTTP. I don't know why a smiley face would do that, but I also don't want to judge." />
 
 The user submits the form and an HTTP request is sent to our API Gateway service, which is the public-facing portion of our system. It might implement server-side rendered views, or it might expose an API or [Backend For Frontend (BFF)](http://samnewman.io/patterns/architectural/bff/) for a single-page or mobile application to consume.
 
@@ -230,15 +265,15 @@ The user submits the form and an HTTP request is sent to our API Gateway service
 
 We want to build this application in a microservice style, and so we have decided to delegate ownership of all write-related user logic to a User Command service.
 
-<img src="/images/event-sourcing/signup-fail.svg" width="600" />
+<img src="/images/event-sourcing/signup-fail.svg" width="600" alt="Diagram of a neutral face emoji sending a request to an API Gateway, which optimistically sends an AccountSignUp event to the event log, both synchronously. The event log is asynchronously read by the User Command service, but validation is unsuccessful, as indicated by a smiling poop emoji who exclaims, 'Fail!' The neutral face emoji is returned a 'success' response, but there are no successes here. Only nightmares. I think my emoji game is improving." />
 
 We might be tempted to have the API Gateway publish an `AccountSignUp` event, which our User Command service would listen for and process. After all, this is how a lot of event-driven architectures behave — the user _did a thing_ that the system can react to. Unfortunately this creates a huge UX problem: we lose the ability to provide immediate feedback to the user. There is no guarantee that the User Command service is currently available — it could be overloaded, or it might have crashed. If we publish an `AccountSignUp` event and some of the form data is invalid, we have no way of informing the user. The best we can do would be to display an optimistic "success" message, _hope_ that the form data is valid, _hope_ that the user account is persisted, and _hope_ that, should any errors occur, the user would return to our website to try again.
 
 The breakthrough approach here, for me, was when I understood that in an event sourced system, all of the _writes_ must occur to the event log. It could be interesting or useful to log some of the antecedent details (such as requests), but the only thing we really _must_ do is ensure that all writes are modeled as log appends.
 
-<img src="/images/event-sourcing/signup-success.svg" width="620" />
+<img src="/images/event-sourcing/signup-success.svg" width="620" alt="Diagram of smiling face emoji connecting synchronously to the API gateway, which POSTs to a /users endpoint on the User Command service, which in turn sends a synchronous AccountCreated event to the Event Log. Because the User Command service performed pessimistic validation, the success message returned to the smiling face emoji is an honest-to-goodness success." />
 
-If the user interface requires a synchronous response for immediate feedback, so be it. We can achieve this in the traditional, RESTful way, by having the API Gateway issue an HTTP request to the User Command service. Perhaps this would be modeled as a `POST /users` endpoint. The User Command service would perform any validations, write an `AccountCreated` event to the event log, and return a `201 Created` response to the API Gateway. The API Gateway would then render a success message for the user. The user account creation is considered to be a success — a historical fact — at the moment the log append occurs. (Greg Young [emphasizes the importance](https://www.youtube.com/watch?v=8JKjvY4etTY) of storing only facts in our event log.)
+If the user interface requires a synchronous response for immediate feedback, so be it. We can achieve this in the traditional, RESTful way, by having the API Gateway issue an HTTP request to the User Command service. Perhaps this would be modeled as a `POST /users` endpoint. The User Command service would perform any validations, write an `AccountCreated` event to the event log, and return a `201 Created` response to the API Gateway. The API Gateway would then render a success message for the user. The user account creation is considered to be a success — a historical fact — at the moment the log append occurs. (Greg Young [emphasizes the importance](https://youtu.be/8JKjvY4etTY?t=3m3s) of storing only facts in our event log.)
 
 ### Failure Modes
 
@@ -249,7 +284,7 @@ Let's think about how this part of the system would handle various failures:
 * If the event log is unavailable and the User Command service cannot write to it, the User Command service can return a `500 Internal Server Error` to the API Gateway. The API Gateway can then render an error message for the user, who may retry their request.
 * If the User Command service successfully writes to the event log and then dies, or its HTTP response is not delivered to the API Gateway, then the API Gateway will render an error message for the user, believing the User Command service to be unavailable. The user might then retry their request, if they don't notice their account activation email first! This could result in a second `AccountCreated` event being published to the log. It is therefore important that consumers of the event log implement their consumption in an idempotent way.
 
-<img src="/images/event-sourcing/poops.svg" width="100" />
+<img src="/images/event-sourcing/poops.svg" width="100" alt="Cartoon of two poop emojis, one bigger than another. I actually drew these as practice for other drawings, but they turned out alright and I thought, 'Hey, why not decorate with poop?'" />
 
 ### Validation
 
@@ -269,7 +304,7 @@ But how can we enforce the constraints that no two accounts should have the same
 
 Naturally, the mind will wonder if the User Command service could first read from the database used to store its corresponding read model, searching for duplicate values — if a duplicate is found, do not write to the event log. And this approach would _appear_ to work at first, but due to the eventually consistent property of our system, writes to the event log are not immediately reflected in the various read models that our services maintain. A race condition has been introduced: it is possible to create two user accounts with duplicate data in rapid succession, because we cannot guarantee that the read model will be up to date with the first write at the time that the second write occurs.
 
-<img src="/images/event-sourcing/race-condition.svg" width="600" />
+<img src="/images/event-sourcing/race-condition.svg" width="600" alt="Diagram of Darth Vader and a Smiley emoji sending concurrent requests for the username 'dvader' to the User Command service. User Command first checks the Database to see if that username is taken, but in both cases it is not! User Command then writes two AccountCreated events to the Event Log. The Database asynchronously reads those events from the Event Log, accidentally creating duplicate 'dvader' accounts. A poop emoji beams a gigantic smile from within the database, because our data is now... inconsistent." />
 
 ### Maybe You Don't Need Immediate Consistency
 
@@ -281,13 +316,13 @@ I can't remember where I first encountered the following solution, but it struck
 
 For our user sign up flow, I think we can eliminate the uniqueness constraint for usernames. But what about email addresses? I would prefer not to have duplicate account creation events in the log if we can avoid it.
 
-<img src="/images/event-sourcing/lock-tag.svg" width="240" />
+<img src="/images/event-sourcing/lock-tag.svg" width="240" alt="Cartoon of a 'dvader@empire.gov' name tag with a small lock (perhaps one of those airport suitcase locks) shackled through it. The lock isn't attached to anything else. This is a metaphor, okay. Visual metaphors aren't supposed to take the complexities of life into account. Whatever." />
 
 ### Locks
 
 We could make judicious use of locks to enforce a uniqueness constraint for email addresses.
 
-<img src="/images/event-sourcing/lock-service.svg" width="560" />
+<img src="/images/event-sourcing/lock-service.svg" width="560" alt="Diagram of Darth Vader, who clearly has too much time on his hands, requesting a 'dvader' account from  the User Command service. User Command requests a lock on the username 'dvader' from the Lock service, which replies with 'Cool.', as services do. 200 OK, Cool. Anyways, User Command next sends an AccountCreated event for 'dvader' to the event log." />
 
 We would add a new Lock service to our ecosystem. The Lock service does what it says on the tin: other services can use it to obtain a lock on a resource before writing to it. This could be as simple as an HTTP service wrapping a transactional data store, but probably we would want to reach for an off-the-shelf solution.
 
@@ -305,7 +340,7 @@ Kleppmann does a [great job](https://martin.kleppmann.com/2016/02/08/how-to-do-d
 
 If we remove the time-to-live from the lock, we will be okay until the User Command service dies immediately after acquiring the lock, but before writing the new user account. When the service restarts after this error, we will be deadlocked. The user will be unable to retry their account creation, because their email address is now permanently locked.
 
-<img src="/images/event-sourcing/deadlock.svg" width="440" />
+<img src="/images/event-sourcing/deadlock.svg" width="440" alt="Diagram of Darth Vader, whom I can now draw from memory, requesting user name 'dvader' from the User Command service. User Command requests a lock on 'dvader' from the Lock service, but explodes in a horrifying nuclear blast after acquiring the lock. User Command fails to send an event to the Event Log, and we are now deadlocked. Now would be a good time to find somebody to blame." />
 
 Really, what we need to do is ["squeeze all the non-determinism out of the input stream"](https://engineering.linkedin.com/distributed-systems/log-what-every-software-engineer-should-know-about-real-time-datas-unifying). Kleppmann provides two strategies for achieving this.
 
@@ -313,7 +348,7 @@ Really, what we need to do is ["squeeze all the non-determinism out of the input
 
 The first strategy is to have the Lock service implment a [fencing token](https://martin.kleppmann.com/2016/02/08/how-to-do-distributed-locking.html). Basically, each time a lock is acquired, the Lock service assigns a monotonically increasing integer to the lock. If the same lock is accidentally acquired twice due to temporal anomalies, each version of the lock will have a different integer associated with it. Requests to write must then supply the integer, and the service which handles the writes is responsible for ignoring writes whose integer is not larger than that of the previous write.
 
-<img src="/images/event-sourcing/fencing-token.svg" width="650" />
+<img src="/images/event-sourcing/fencing-token.svg" width="650" alt="Diagram of Darth Vader and, later, a Stormtrooper, attempting to create account 'dvader'. User Command service acquires a lock with fencing token #1 for Darth Vader's attempt, and publishes an AccountCreated event, which somehow becomes very delayed in transit. Meanwhile, User Command does the same thing for Stormtrooper's request, acquiring fencing token #2, and promptly delivering an event to the Event Log. The effect is that Stormtrooper's event was sent after, but arrives before, Darth Vader's event. The Database, when asynchronously reading these events, reads Stormtrooper's request first, which contains fencing token #2. Next, when Database reads Darth Vader's request, complete with fencing token #1, it rejects it, because fencing tokens are invalid if received in decreasing order." />
 
 Notice something about this strategy? It looks awfully similar to a totally ordered log! This implies that a log-oriented solution might be possible. It also requires a heck of a lot of plumbing, in my opinion. Each service responsible for writing to a locked resource must understand and correctly implement the monotonically increasing integer check.
 
@@ -321,7 +356,7 @@ Notice something about this strategy? It looks awfully similar to a totally orde
 
 Kleppmann's [second strategy](https://www.infoq.com/presentations/event-streams-kafka) is a log-oriented one. Basically, services wishing to acquire a lock publish a request event to a topic within the event log. A consumer service (similar to our Lock service) reads those events and essentially filters out duplicates, finally publishing a different event (the actual write) to a different topic within the event log. If the consumer service dies, it can simply reconstruct its state by replaying log events.
 
-<img src="/images/event-sourcing/deduplicator.svg" width="650" />
+<img src="/images/event-sourcing/deduplicator.svg" width="650" alt="Diagram of Darth Vader and Boba Fett both requesting account 'dvader' from the User Command service, which publishes two events to the Request Log. A Deduplicator service asynchronously reads from this log and writes a single event to the Write Log, representing the winning request. A database finally asynchronously reads the winning request from the Write Log, and creates a user account for real. Both Darth Vader and Boba Fett receive optimistic 'success' messages. They are gonna be pissed later. To be honest, I'm choosing Star Wars characters entirely based on how easy it is to draw their heads, which in practice means I'm using only people who wear helmets. I tried drawing Yoda but honestly that was a bad idea. Same for Chewbacca. Same for R2D2. Same for C3P0. I'm trying, okay?" />
 
 This is a very clever solution, built out of simple components, and it relieves the services handling writes from the responsibility of implementing a fencing token. Unfortunately the cost of this simplicity is losing the ability to provide a synchronous response to the user — we can't tell them if their write was successful, because consumption of the event log might be delayed. I wonder if we can come up with a reusable solution which allows us to provide immediate feedback to the user?
 
@@ -329,11 +364,11 @@ This is a very clever solution, built out of simple components, and it relieves 
 
 Recall the distributed-systems-as-Unix-pipes philosophy. It might be possible to create a composable Uniq service — similar to the Unix `uniq` command — which could be reused across multiple services for their event deduplication and locking needs.
 
-<img src="/images/event-sourcing/pipes.svg" width="400" />
+<img src="/images/event-sourcing/pipes.svg" width="400" alt="Handwritten version of the following, for emphasis: uniq_service | uniq | event log" />
 
 How would this Uniq service work? All write events subject to uniqueness constraints would be sent to Uniq for deduplication and constraint checking purposes, before being forwarded on to the event log. Uniq could expose a RESTful API for create, update, and delete operations, . An `/event` endpoint would do nicely.
 
-<img src="/images/event-sourcing/uniq.svg" width="500" />
+<img src="/images/event-sourcing/uniq.svg" width="500" alt="Diagram of Darth Vader and X-Wing Pilot Luke Skywalker (with helmet!) sending simultaneous requests for account 'dvader' to the User Command service. User Command attempts to publish two AccountCreated events through the stateful Uniq service, which rejects the second request because 'dvader' is already taken. Darth Vader's request receives a 200 OK, and Luke Skywalker's receives a 409 Conflict. But don't worry, in the movie Luke totally wins, or at least they end up on the same team. Finally, the successful AccountCreated event is synchronously written by the Uniq service to the event log. Uniq is acting in a write-through capacity, here." />
 
 When performing user account creation, the User Command service would construct its desired log message and `POST` it to the Uniq service. Uniq would support a simple configuration file which maps fields of log messages to CRUD operations. For example, when Uniq receives our `AccountCreated` event, it would extract the `email` field from that event and add that email to a set it maintains in memory. If the email does not already exist in the set, Uniq writes that event to the log, and returns a `200 OK` response. In this way, Uniq can provide a synchronous response to our User Command service, which facilitates immediate feedback for the user. Uniq acts as a proxy for events — just another piece of the pipeline.
 
@@ -347,11 +382,11 @@ If availability is a concern, a second instance of Uniq can operate in follower 
 
 So we have our strategy for handling concurrent requests for user accounts with the same email address: we will pipe all writes through a Uniq service, which enforces the uniqueness constraint.
 
-Couldn't we have used a relational database to enforce this constraint instead? Well, yes, we could. Michael Pleod makes the [wise recommendation](https://www.youtube.com/watch?v=A0goyZ9F4bg) that we implement the level of consistency that our business domain requires. The ideal level of consistency for one subsystem may not be needed across the entire system. For example, it might be considered unacceptable for two user accounts to _ever_ accidentally share the same email address, since this would prevent users from logging in. Therefore, we can enforce a uniqueness constraint only for email addresses, paying the complexity cost because we see it as justifiable. But for other subsystems where we might traditionally enforce a uniqueness constraint, we could employ more creative solutions. We are dialing in the amount of consistency that each part of the system requires.
+Couldn't we have used a relational database to enforce this constraint instead? Well, yes, we could. Michael Ploed makes the [wise recommendation](https://youtu.be/A0goyZ9F4bg?t=50m14s) that we implement the level of consistency that our business domain requires. The ideal level of consistency for one subsystem may not be needed across the entire system. For example, it might be considered unacceptable for two user accounts to _ever_ accidentally share the same email address, since this would prevent users from logging in. Therefore, we can enforce a uniqueness constraint only for email addresses, paying the complexity cost because we see it as justifiable. But for other subsystems where we might traditionally enforce a uniqueness constraint, we could employ more creative solutions. We are dialing in the amount of consistency that each part of the system requires.
 
 So it would make sense for the User Command service to write to a relational database implementing a uniqueness constraint. But this approach creates one very unfortunate side-effect: we lose atomicity. Writing a new user to the database, and _then_ writing an event to the log, opens the possibility that the first write will succeed but the second one will fail. This situation would render our data inconsistent, and a compensating transaction would be required to reconcile the two. Dual writes strike again!
 
-<img src="/images/event-sourcing/atomicity.svg" width="400" />
+<img src="/images/event-sourcing/atomicity.svg" width="400" alt="Diagram of user wearing fashionable top hat sending a request to the User Command service, which performs an ill-advised dual write, first to a database, and then to an Event Log. Skull and crossbones indicates that the second write is headed for a grim fate." />
 
 It might be possible to create a second table in our relational database, and write our events to that table. We could then wrap both our user write and the event write in a transaction, regaining atomicity. But now we need a way to get those events _out_ of the database and into the event log, and ideally without implementing a polling strategy, which would increase replication lag. The amount of plumbing required to make this happen is excessive, in my opinion. And the solution wouldn't be reusable across services.
 
@@ -361,7 +396,7 @@ So our User Command service is able to write an `AccountCreated` event to the lo
 
 The read model consists a service wrapping a persistence mechanism. Most likely we would choose a database which provides a good fit for the types of queries we will be performing. For our User Query service we will assume a document database which stores JSON-like documents.
 
-<img src="/images/event-sourcing/read-model.svg" width="500" />
+<img src="/images/event-sourcing/read-model.svg" width="500" alt="Diagram of Event Log containing names of Star Wars characters, being asynchronously read by a User Query service, which synchronously writes those characters to its own private database, in a denormalized schema, for later querying." />
 
 The read model will consume relevant events from the event log, and update its database accordingly. In the case of the User Query service, every `AccountCreated` event consumed would trigger the insertion of a new user document into the database.
 
@@ -373,7 +408,7 @@ Another interesting property is the potential for the elimination of schema migr
 
 After our user has signed up, we want to send them an account activation email. To accomplish this, we will create a Mail service which monitors the event log for `AccountCreated` events, and sends activation emails to those users, probably by calling the RESTful API of a third-party email provider.
 
-<img src="/images/event-sourcing/mail.svg" width="500" />
+<img src="/images/event-sourcing/mail.svg" width="500" alt="Diagram of Event Log being asynchronously read by Mail service, which sends requests to a Fancy Cloud Email Co., represented by a huge factory puffing clouds of smoke. Cloud, get it? After each email is sent, Mail service writes a checkpoint corresponding to the event processed to a Checkpoint log. I had way too much fun trying to figure out how to draw the Fancy Cloud Email Co." />
 
 But what happens if the Mail service crashes after reading a message from the log? As it turns out, this is not a problem, provided that the mail service persists the ID of the last message it consumed — a _checkpoint_. And where better to persist this ID than to a topic within the event log!
 
@@ -381,7 +416,7 @@ How frequently should we store checkpoints? If we store a checkpoint for every m
 
 As it turns out, the Mail service cannot guarantee exactly-once delivery of emails to users. Let's say that the Mail service has already consumed event 1, and is now consuming event 2 from the log. If an email is sent and the service crashes before checkpoint 2 can be written, when the service restarts it will begin working from the next event after its last checkpoint. The last checkpoint was 1, so event 2 will be processed again. A duplicate email will be sent!
 
-<img src="/images/event-sourcing/duplicates.svg" width="520" />
+<img src="/images/event-sourcing/duplicates.svg" width="520" alt="Diagram of Event Log being asynchronously consumed by Mail service, which is on fire. Drawing fire is tricky, let me tell you. I added some smoke lines to really make the effect. Anyways, Mail service sends an email to Fancy Cloud Email Co. and then suddenly dies before it can write to the Checkpoint log. Another instance Mail service, which has restarted, reads the checkpoint, reads from the event log, and sends the same email again! Finally, restarted Mail service writes a checkpoint successfully, absolutely not dying in the process. All of this to send an email. But also to prove that it's impossible to avoid sending duplicate emails." />
 
 Writing the checkpoint before sending the email will only make things worse. If we store checkpoint 2 and then crash before sending email 2, when the service restarts it will begin working from the next event after its last checkpoint. The last checkpoint was 2, so event 3 will be processed. In this case, event 2 will be skipped!
 
@@ -393,7 +428,7 @@ It is a prudent exercise to think about what would happen if our third-party ema
 
 If for any reason our Mail service does not receive a response from the provider, we can retry the request. In fact, we _need_ to retry the request, because the log-oriented nature of our system can only guarantee that all events are processed if they are handled sequentially. If we start skipping events, we would need to enqueue those skipped events into — you guessed it — another log for later processing. It's logs all the way down.
 
-<img src="/images/event-sourcing/retries.svg" width="600" />
+<img src="/images/event-sourcing/retries.svg" width="600" alt="Diagram of Mail service asynchronously reading from the Event Log, and retrying attempts to send email to Fancy Cloud Email Co., which is on fire right now. I mean like, really on fire. So much so that a stick figure person wearing a top hat is holding their hand up and saying, 'Now is not a good time.' That's a lot of fire. So the retries keep coming and the top hat person keeps saying no, and we never find out how this episode ends." />
 
 So the system will guarantee delivery by _pausing_ when an error occurs, polling for success, and resuming when the error condition has passed. This entails installing a [circuit breaker](https://martinfowler.com/bliki/CircuitBreaker.html) to gate calls to the email provider. If the provider becomes unresponsive, the Mail service will retry the request repeatedly until the circuit breaker trips, at which point it will retry the request at a slower rate. When the provider comes back online, a request will eventually be successful and the Mail service can catch up with its backlog.
 
@@ -401,7 +436,7 @@ So the system will guarantee delivery by _pausing_ when an error occurs, polling
 
 Our toy system is now complete. Obviously this represents merely the user signup flow for what would be a much larger application. I would go on, but as you can see, even this slice of architecture requires a lengthy description. Nevertheless, I hope this has been a useful dive into the finer details how we might go implementing such a system. I know I've learned a lot while writing it!
 
-<img src="/images/event-sourcing/architecture.svg" />
+<img src="/images/event-sourcing/architecture.svg" alt="Diagram of the final architecture, just so we're on the same page. Darth Vader (naturally) sends a request to API Gateway, which forwards it to User Command, which writes an event through Uniq (for deduplication), which lands in the Event Log. User Query asynchronously reads from Event Log to update its own User Database. Mail also asynchronously reads from Event Log in order to send requests to Fancy Cloud Email Co. Really, it's not as complicated as it looks. It's kind of like modern art. Some people look at it and are all like, 'I could totally do that.' Well, yeah, you probably could. In fact, I think that's kind of the point." />
 
 ## Where do we go from here?
 
@@ -417,4 +452,4 @@ I think the most sensible course of action is to treat event sourcing as an evol
 
 > "The best time to [begin reinforcing event sourcing patterns] was 20 [sprints] ago."
 
-<img src="/images/event-sourcing/ants.svg" width="1000" />
+<img src="/images/event-sourcing/ants.svg" width="1000" alt="Picture of a bunch of ants marching towards an anthill, and walking inside. I was considering using this as the title graphic, but I went with the insects instead. It's all about artistic choices." />

@@ -186,6 +186,12 @@ main > article ol li {
   margin-bottom: 0.4rem;
 }
 
+main > article li ul,
+main > article li ol {
+  margin-top: 0.4rem;
+  margin-bottom: 0;
+}
+
 main > article > blockquote {
   font-size: 1rem;
   line-height: 1.6rem;
@@ -207,19 +213,46 @@ main > article > div > pre {
 }
 
 footer {
-  font-size: 1.2rem;
-  font-weight: bold;
-  text-align: right;
-  padding: 0 1rem 2.4rem;
+  align-items: center;
+  display: flex;
+  flex-direction: column;
+  min-height: 5rem;
+  padding: 1rem 1rem 2.4rem;
+}
+
+footer > time {
+  color: #BBB;
+  font-size: 1rem;
+  font-style: italic;
+  font-weight: normal;
+  order: 2;
 }
 
 footer > a {
   color: #CCC;
+  margin-bottom: 1rem;
+  order: 1;
   text-decoration: none;
-  transition: color 0.5s linear;
 }
 
 footer > a:hover {
   color: #AAA;
   text-decoration: none;
+}
+
+@media screen and (min-width: 400px) {
+  footer {
+    flex-direction: row;
+    justify-content: space-between;
+  }
+
+  footer > time {
+    order: 1;
+  }
+
+  footer > a {
+    display: block;
+    margin-bottom: 0;
+    order: 2;
+  }
 }
