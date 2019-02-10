@@ -163,6 +163,11 @@ main > article > p > img {
   margin: 0 auto;
 }
 
+main > article > p > img.image-left-align {
+  margin-left: 0;
+  margin-right: 0;
+}
+
 @media screen and (min-width: 800px) {
   main > article > p > img.breakout {
     display: block;
